@@ -28,7 +28,7 @@ const useCors = (app: Express, options: AppOptions): void => {
 const useRequestId = (app: Express): void => {
   app.use((req, res, next) => {
     req.id = randomUUID()
-    res.setHeader('X-Powered-By', 'dotpress.org')
+    res.setHeader('X-Powered-By', 'dotpress.dev')
     res.setHeader('X-Request-ID', req.id)
     next()
   })

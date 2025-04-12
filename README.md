@@ -2,6 +2,8 @@
 
 **Dotpress** is a lightweight and modern wrapper around Express.js designed for clean and scalable APIs written in TypeScript.
 
+[Full documentation here](https://dotpress.dev)
+
 ## Why Dotpress?
 
 Writing Express apps in TypeScript can be painful:

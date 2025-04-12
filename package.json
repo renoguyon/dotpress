@@ -1,9 +1,14 @@
 {
   "name": "dotpress",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Dotpress - Modern express microframework for Typescript backends",
   "author": "Renaud Guyon",
   "license": "MIT",
+  "homepage": "https://dotpress.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/renoguyon/dotpress"
+  },
   "main": "dist/index.js",
   "types": "dist/types/index.d.ts",
   "exports": {
@@ -44,10 +49,7 @@
     "morgan": "^1.10.0",
     "pino": "^9.6.0"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/renoguyon/dotpress"
-  },
+
   "keywords": [
     "express",
     "typescript",
