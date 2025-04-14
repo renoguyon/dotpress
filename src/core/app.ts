@@ -20,6 +20,10 @@ export const createApp = async (options: AppOptions = {}) => {
   const router = express.Router()
   const globalMiddlewares = options?.middlewares ?? []
 
+  if (options.useBeforeRoutes) {
+    options.useBeforeRoutes(app)
+  }
+
   const routes: RouteDefinition[] = getAllRoutes()
 
   routes.forEach(
@@ -57,6 +61,10 @@ export const createApp = async (options: AppOptions = {}) => {
       message: 'No matching route.',
     })
   })
+
+  if (options.useAfterRoutes) {
+    options.useAfterRoutes(app)
+  }
 
   // Global error handler
   app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {

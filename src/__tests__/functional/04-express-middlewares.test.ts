@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import request from 'supertest'
 import { createApp, defineRoute, $clearRoutes } from '../../index.js'
+import { NextFunction } from 'express'
 
 describe('Express Middlewares', () => {
   beforeEach(() => {
@@ -27,5 +28,49 @@ describe('Express Middlewares', () => {
     expect(res.headers['x-request-id']).toStrictEqual(
       expect.stringMatching(uuidPattern)
     )
+  })
+
+  it('should call useBeforeRoutes and useAfterRoutes at the correct time', async () => {
+    defineRoute({
+      path: '/crash',
+      handler: async () => {
+        callOrder.push('route-handler')
+        throw new Error('Oh no! It crashed!')
+      },
+    })
+
+    const callOrder: string[] = []
+
+    const useBeforeRoutes = vi.fn((app) => {
+      app.use((_req: Request, _res: Response, next: NextFunction) => {
+        callOrder.push('before-routes-middleware')
+        next()
+      })
+    })
+
+    const useAfterRoutes = vi.fn((app) => {
+      app.use(
+        (err: unknown, _req: Request, _res: Response, next: NextFunction) => {
+          callOrder.push('after-routes-middleware')
+          next(err)
+        }
+      )
+    })
+
+    const app = await createApp({
+      useBeforeRoutes,
+      useAfterRoutes,
+    })
+
+    await request(app).get('/crash')
+
+    expect(useBeforeRoutes).toHaveBeenCalledTimes(1)
+    expect(useAfterRoutes).toHaveBeenCalledTimes(1)
+
+    expect(callOrder).toEqual([
+      'before-routes-middleware',
+      'route-handler',
+      'after-routes-middleware',
+    ])
   })
 })

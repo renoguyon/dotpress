@@ -1,7 +1,7 @@
-import { Request, Response } from 'express'
-import { ZodSchema, TypeOf } from 'zod'
+import type { Request, Response, Express } from 'express'
+import type { ZodSchema, TypeOf } from 'zod'
 import type { Logger } from 'pino'
-import { HttpError } from '../core/errors.js'
+import type { HttpError } from '../core/errors.js'
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -33,6 +33,8 @@ export type AppOptions = {
   middlewares?: RouteMiddleware[]
   onException?: (err: unknown, req: Request) => void
   onRequestComplete?: (e: CompleteRequestEvent) => void
+  useBeforeRoutes?: (app: Express) => void
+  useAfterRoutes?: (app: Express) => void
 }
 
 export type RouteMiddleware<
