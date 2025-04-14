@@ -10,6 +10,10 @@ import { wrapHandler } from './handlers.js'
 import { buildValidationMiddleware } from '../middlewares/validation.js'
 import z, { ZodSchema } from 'zod'
 import { setupBaseMiddlewares } from '../middlewares/base-middlewares.js'
+import {
+  buildFileValidationMiddleware,
+  getMulterInstance,
+} from '../middlewares/file.js'
 
 export const createApp = async (options: AppOptions = {}) => {
   const app = express()
@@ -25,11 +29,26 @@ export const createApp = async (options: AppOptions = {}) => {
   }
 
   const routes: RouteDefinition[] = getAllRoutes()
+  const upload = await getMulterInstance()
 
   routes.forEach(
-    ({ method = 'get', path, handler, schema, middlewares = [] }) => {
+    ({ method = 'get', path, handler, schema, middlewares = [], files }) => {
       const handlers: RequestHandler[] = []
       let responseSchema: ZodSchema | undefined
+
+      if (files) {
+        if (!upload) {
+          throw new Error("You need to install 'multer' to enable file upload.")
+        }
+
+        const fileNames = Array.isArray(files) ? files : Object.keys(files)
+        const fileFields = fileNames.map((name) => ({ name, maxCount: 1 }))
+        handlers.push(upload.fields(fileFields))
+
+        if (!Array.isArray(files)) {
+          handlers.push(buildFileValidationMiddleware(files))
+        }
+      }
 
       if (schema) {
         const resolvedSchema = schema(z)

@@ -3,6 +3,7 @@ import {
   AppOptions,
   AsyncHandler,
   CompleteRequestEvent,
+  FileRules,
   RequestContext,
   RouteMiddleware,
 } from '../types/types.js'
@@ -13,10 +14,11 @@ import { Logger } from 'pino'
 export const wrapHandler = <
   TReq extends Request = Request,
   TRes extends Response = Response,
+  TFile extends FileRules | undefined = undefined,
 >(
-  fn: AsyncHandler<TReq, TRes>,
+  fn: AsyncHandler<TReq, TRes, unknown, TFile>,
   responseSchema?: ZodSchema,
-  middlewares: RouteMiddleware<TReq, TRes>[] = [],
+  middlewares: RouteMiddleware<TReq, TRes, TFile>[] = [],
   options: AppOptions = {}
 ): RequestHandler => {
   return async (req, res, next) => {
@@ -30,13 +32,17 @@ export const wrapHandler = <
       // Nothing to do here
     }
 
-    const ctx: RequestContext<TReq, TRes> = {
+    const ctx: RequestContext<TReq, TRes, TFile> = {
       req: req as TReq,
       res: res as TRes,
       logger: logger as Logger,
       requestId: req.id || '',
       user: req.user ? req.user : undefined,
-    }
+      getFile: (name) => {
+        const files = req.files?.[name as string]
+        return Array.isArray(files) ? files[0] : undefined
+      },
+    } as RequestContext<TReq, TRes, TFile>
 
     const requestStart = new Date()
 

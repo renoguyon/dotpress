@@ -3,11 +3,24 @@ import type { ZodSchema, TypeOf } from 'zod'
 import type { Logger } from 'pino'
 import type { HttpError } from '../core/errors.js'
 
+export type MulterFile = {
+  fieldname: string
+  originalname: string
+  encoding: string
+  mimetype: string
+  size: number
+  destination: string
+  filename: string
+  path: string
+  buffer: Buffer
+}
+
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       id?: string
+      files?: Record<string, MulterFile[]>
       user?: unknown
     }
   }
@@ -40,19 +53,41 @@ export type AppOptions = {
 export type RouteMiddleware<
   TReq extends Request = Request,
   TRes extends Response = Response,
-> = (ctx: RequestContext<TReq, TRes>) => Promise<void | HttpError>
+  TFile extends FileRules | undefined = undefined,
+> = (ctx: RequestContext<TReq, TRes, TFile>) => Promise<void | HttpError>
 
-export type RequestContext<TReq = Request, TRes = Response> = {
+export type FileValidation = {
+  maxSize?: number
+  mimeTypes?: string[]
+  extensions?: string[]
+}
+
+export type RequestFiles<F extends FileRules = FileRules> =
+  F extends Record<string, unknown>
+    ? { [K in keyof F]: MulterFile[] }
+    : Record<string, MulterFile[]>
+
+export type RequestContext<
+  TReq = Request,
+  TRes = Response,
+  TFile extends FileRules | undefined = undefined,
+> = {
   req: TReq
   res: TRes
   logger: Logger
   requestId: string
   user: ContextType['user'] | undefined
+  getFile: (
+    name: TFile extends FileRules ? keyof TFile : string
+  ) => MulterFile | undefined
 }
 
-export type AsyncHandler<TReq = Request, TRes = Response, TResult = unknown> = (
-  ctx: RequestContext<TReq, TRes>
-) => Promise<TResult | HttpError>
+export type AsyncHandler<
+  TReq = Request,
+  TRes = Response,
+  TResult = unknown,
+  TFile extends FileRules | undefined = undefined,
+> = (ctx: RequestContext<TReq, TRes, TFile>) => Promise<TResult | HttpError>
 
 export type ValidationSchema = {
   body?: ZodSchema
@@ -74,15 +109,19 @@ export type ExtractRequestType<S extends ValidationSchema> = Request<
   S['query'] extends ZodSchema ? TypeOf<S['query']> : any
 >
 
+export type FileRules = Record<string, FileValidation>
+
 export type RouteDefinition<
   TResult = unknown,
   S extends ValidationSchema = ValidationSchema,
+  TFile extends FileRules | undefined = undefined,
 > = {
   path: string
   method?: 'get' | 'post' | 'put' | 'delete'
-  handler: AsyncHandler<ExtractRequestType<S>, Response, TResult>
+  handler: AsyncHandler<ExtractRequestType<S>, Response, TResult, TFile>
   schema?: SchemaFactory<S>
   middlewares?: RouteMiddleware<ExtractRequestType<S>>[]
+  files?: TFile
 }
 
 export type CompleteRequestEvent = {
