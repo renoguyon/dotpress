@@ -134,3 +134,14 @@ export type CompleteRequestEvent = {
   statusCode: number
   durationMs: number
 }
+
+export type RouteGroup = {
+  defineRoute: <
+    TResult = unknown,
+    S extends ValidationSchema = ValidationSchema,
+    TFile extends FileRules | undefined = undefined,
+  >(
+    routeConfig: RouteDefinition<TResult, S, TFile>
+  ) => void
+  createGroup: (prefix: string, middlewares?: RouteMiddleware[]) => RouteGroup
+}
