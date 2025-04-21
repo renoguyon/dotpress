@@ -10,6 +10,8 @@ import {
 import { HttpError } from './errors.js'
 import { ZodSchema, ZodNever } from 'zod'
 import { Logger } from 'pino'
+import { getResponseFilters } from './filters.js'
+import { isPromise } from '../utils/promise.js'
 
 export const wrapHandler = <
   TReq extends Request = Request,
@@ -80,9 +82,18 @@ export const wrapHandler = <
         if (result instanceof HttpError) {
           return returnErrorResponse(res, result)
         } else if (responseSchema) {
-          return returnValidatedResponse(res, responseSchema, result)
+          return await returnValidatedResponse(
+            ctx as unknown as RequestContext,
+            res,
+            responseSchema,
+            result
+          )
         } else {
-          return res.json(result)
+          const filteredResult = await applyResponseFilters(
+            ctx as unknown as RequestContext,
+            result
+          )
+          return res.json(filteredResult)
         }
       } else if (responseSchema instanceof ZodNever) {
         return res.status(204).send()
@@ -105,16 +116,42 @@ const returnErrorResponse = <TRes extends Response = Response>(
   })
 }
 
-const returnValidatedResponse = <TRes extends Response = Response>(
+const returnValidatedResponse = async <TRes extends Response = Response>(
+  ctx: RequestContext,
   res: TRes,
   responseSchema: ZodSchema,
   result: unknown
-): TRes => {
+): Promise<TRes> => {
   if (responseSchema instanceof ZodNever) {
     // 204 No Content
     return res.status(204).send()
   }
 
   const validatedResponse = responseSchema.parse(result)
-  return res.json(validatedResponse)
+
+  const filteredResult = await applyResponseFilters(
+    ctx as unknown as RequestContext,
+    validatedResponse
+  )
+
+  return res.json(filteredResult)
+}
+
+const applyResponseFilters = async (
+  ctx: RequestContext,
+  result: unknown
+): Promise<unknown> => {
+  let currentResult = result
+
+  for (const filter of getResponseFilters()) {
+    const output = filter(ctx, currentResult)
+
+    if (isPromise(output)) {
+      currentResult = await output
+    } else {
+      currentResult = output
+    }
+  }
+
+  return currentResult
 }

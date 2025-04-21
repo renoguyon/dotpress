@@ -145,3 +145,8 @@ export type RouteGroup = {
   ) => void
   createGroup: (prefix: string, middlewares?: RouteMiddleware[]) => RouteGroup
 }
+
+export type ResponseFilter = (
+  ctx: RequestContext,
+  result: unknown
+) => unknown | Promise<unknown>
