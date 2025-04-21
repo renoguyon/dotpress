@@ -37,6 +37,8 @@ export type ContextType = {
   user: GetOrUnknown<AppTypes, 'user'>
 }
 
+export type HookFunction = (app: Express) => void
+
 export type AppOptions = {
   isDev?: boolean
   enableHttpLogging?: boolean
@@ -46,8 +48,9 @@ export type AppOptions = {
   middlewares?: RouteMiddleware[]
   onException?: (err: unknown, req: Request) => void
   onRequestComplete?: (e: CompleteRequestEvent) => void
-  useBeforeRoutes?: (app: Express) => void
-  useAfterRoutes?: (app: Express) => void
+  useBeforeRoutes?: HookFunction
+  useAfterRoutes?: HookFunction
+  plugins?: Plugin[]
 }
 
 export type RouteMiddleware<
@@ -150,3 +153,14 @@ export type ResponseFilter = (
   ctx: RequestContext,
   result: unknown
 ) => unknown | Promise<unknown>
+
+export type PluginAPI = {
+  addRoute: (route: RouteDefinition) => void
+  addGroup: (prefix: string, middlewares?: RouteMiddleware[]) => RouteGroup
+  addResponseFilter: (filter: ResponseFilter) => void
+  addGlobalMiddleware: (middleware: RouteMiddleware) => void
+  useBeforeRoutes: (fn: HookFunction) => void
+  useAfterRoutes: (fn: HookFunction) => void
+}
+
+export type Plugin = (pluginApi: PluginAPI) => void

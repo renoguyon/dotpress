@@ -4,8 +4,13 @@ import express, {
   Response,
   NextFunction,
 } from 'express'
-import { getAllRoutes } from './routes.js'
-import type { AppOptions, RouteDefinition } from '../types/types.js'
+import { getAllRoutes, defineRoute, createRouteGroup } from './routes.js'
+import {
+  AppOptions,
+  HookFunction,
+  RouteDefinition,
+  RouteMiddleware,
+} from '../types/types.js'
 import { wrapHandler } from './handlers.js'
 import { buildValidationMiddleware } from '../middlewares/validation.js'
 import z, { ZodSchema } from 'zod'
@@ -14,6 +19,7 @@ import {
   buildFileValidationMiddleware,
   getMulterInstance,
 } from '../middlewares/file.js'
+import { registerResponseFilter } from './filters.js'
 
 export const createApp = async (options: AppOptions = {}) => {
   const app = express()
@@ -23,9 +29,33 @@ export const createApp = async (options: AppOptions = {}) => {
 
   const router = express.Router()
   const globalMiddlewares = options?.middlewares ?? []
+  const beforeRouteHooks: HookFunction[] = []
+  const afterRouteHooks: HookFunction[] = []
+
+  for (const plugin of options?.plugins || []) {
+    plugin({
+      addRoute: (route) => defineRoute(route),
+      addGroup: (prefix: string, middlewares: RouteMiddleware[] = []) =>
+        createRouteGroup(prefix, middlewares),
+      addGlobalMiddleware: (middleware) => {
+        globalMiddlewares.push(middleware)
+      },
+      addResponseFilter: (filter) => registerResponseFilter(filter),
+      useBeforeRoutes: (hook) => {
+        beforeRouteHooks.push(hook)
+      },
+      useAfterRoutes: (hook) => {
+        afterRouteHooks.push(hook)
+      },
+    })
+  }
 
   if (options.useBeforeRoutes) {
     options.useBeforeRoutes(app)
+  }
+
+  for (const hook of beforeRouteHooks) {
+    hook(app)
   }
 
   const routes: RouteDefinition[] = getAllRoutes()
@@ -83,6 +113,10 @@ export const createApp = async (options: AppOptions = {}) => {
 
   if (options.useAfterRoutes) {
     options.useAfterRoutes(app)
+  }
+
+  for (const hook of afterRouteHooks) {
+    hook(app)
   }
 
   // Global error handler
