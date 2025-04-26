@@ -1,6 +1,6 @@
 {
   "name": "dotpress",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Dotpress - Modern express microframework for Typescript backends",
   "author": "Renaud Guyon",
   "license": "MIT",

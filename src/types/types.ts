@@ -42,15 +42,22 @@ export type HookFunction = (app: Express) => void
 export type AppOptions = {
   isDev?: boolean
   enableHttpLogging?: boolean
-  cors?: {
-    disable?: boolean
-  }
+  cors?: CorsOptions | false
   middlewares?: RouteMiddleware[]
   onException?: (err: unknown, req: Request) => void
   onRequestComplete?: (e: CompleteRequestEvent) => void
   useBeforeRoutes?: HookFunction
   useAfterRoutes?: HookFunction
   plugins?: Plugin[]
+}
+
+export type CorsOptions = {
+  origin?: string | string[]
+  methods?: string[]
+  allowedHeaders?: string[]
+  exposedHeaders?: string[]
+  credentials?: boolean
+  maxAge?: number
 }
 
 export type RouteMiddleware<

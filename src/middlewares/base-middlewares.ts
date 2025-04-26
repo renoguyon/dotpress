@@ -1,24 +1,90 @@
 import type { AppOptions } from '../types/types.js'
-import type { Express } from 'express'
+import type { Express, Request } from 'express'
 import { randomUUID } from 'crypto'
 
 export const setupBaseMiddlewares = async (
   app: Express,
   options: AppOptions
 ) => {
+  useCors(app, options)
   await useMorgan(app, options)
   useRequestId(app)
-  useCors(app, options)
 }
 
 const useCors = (app: Express, options: AppOptions): void => {
-  if (options.cors?.disable !== false) {
+  if (options.cors !== false) {
     app.use((req, res, next) => {
-      res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+      const corsOptions = options.cors || {}
+
+      const getAllowedOrigin = (req: Request): string | undefined => {
+        const requestOrigin = req.headers.origin
+
+        if (corsOptions.origin && Array.isArray(corsOptions.origin)) {
+          if (requestOrigin && corsOptions.origin.includes(requestOrigin)) {
+            return requestOrigin
+          } else {
+            return undefined
+          }
+        }
+
+        if (typeof corsOptions.origin === 'string') {
+          return corsOptions.origin
+        }
+
+        return requestOrigin || '*'
+      }
+
+      const getAllowedMethods = (): string => {
+        return (
+          corsOptions?.methods ?? [
+            'GET',
+            'HEAD',
+            'PUT',
+            'PATCH',
+            'POST',
+            'DELETE',
+          ]
+        ).join(',')
+      }
+
+      const getAllowedHeaders = (): string => {
+        return (
+          corsOptions?.allowedHeaders ?? [
+            'Origin',
+            'X-Requested-With',
+            'Content-Type',
+            'Accept',
+            'Authorization',
+          ]
+        ).join(',')
+      }
+
+      const allowedOrign = getAllowedOrigin(req)
+
+      if (allowedOrign) {
+        res.header('Access-Control-Allow-Origin', allowedOrign)
+      }
+
+      res.header('Access-Control-Allow-Methods', getAllowedMethods())
+      res.header('Access-Control-Allow-Headers', getAllowedHeaders())
+
+      if (corsOptions?.credentials) {
+        res.header('Access-Control-Allow-Credentials', 'true')
+      }
+
+      if (corsOptions?.exposedHeaders) {
+        res.header(
+          'Access-Control-Expose-Headers',
+          corsOptions.exposedHeaders.join(',')
+        )
+      }
+
+      if (corsOptions?.maxAge) {
+        res.header('Access-Control-Max-Age', corsOptions.maxAge.toString())
+      }
 
       if (req.method === 'OPTIONS') {
-        return res.sendStatus(204)
+        return res.status(204).end()
       }
       next()
     })

@@ -73,4 +73,106 @@ describe('Express Middlewares', () => {
       'after-routes-middleware',
     ])
   })
+
+  describe('CORS', () => {
+    it('should enable cors by default', async () => {
+      defineRoute({
+        method: 'get',
+        path: '/hello',
+        handler: async ({ requestId }) => {
+          return { requestId: requestId }
+        },
+      })
+
+      const app = await createApp()
+      const res = await request(app).options('/hello')
+
+      expect(res.status).toBe(204)
+
+      expect(res.headers['access-control-allow-origin']).toBe('*')
+      expect(res.headers['access-control-allow-methods']).toBe(
+        'GET,HEAD,PUT,PATCH,POST,DELETE'
+      )
+      expect(res.headers['access-control-allow-headers']).toBe(
+        'Origin,X-Requested-With,Content-Type,Accept,Authorization'
+      )
+    })
+
+    it('should be able to disable cors', async () => {
+      defineRoute({
+        method: 'get',
+        path: '/hello',
+        handler: async ({ requestId }) => {
+          return { requestId: requestId }
+        },
+      })
+
+      const app = await createApp({
+        cors: false,
+      })
+      const res = await request(app).options('/hello')
+
+      expect(res.status).toBe(200)
+
+      expect(res.headers['access-control-allow-origin']).toBeUndefined()
+      expect(res.headers['access-control-allow-methods']).toBeUndefined()
+      expect(res.headers['access-control-allow-headers']).toBeUndefined()
+    })
+
+    it('should be able to customize cors settings', async () => {
+      defineRoute({
+        method: 'get',
+        path: '/hello',
+        handler: async ({ requestId }) => {
+          return { requestId: requestId }
+        },
+      })
+
+      const app = await createApp({
+        cors: {
+          allowedHeaders: ['content-type'],
+          methods: ['GET', 'PUT', 'POST', 'DELETE'],
+          origin: ['https://example.com'],
+        },
+      })
+
+      const res = await request(app)
+        .options('/hello')
+        .set('origin', 'https://example.com')
+
+      expect(res.status).toBe(204)
+
+      expect(res.headers['access-control-allow-origin']).toBe(
+        'https://example.com'
+      )
+      expect(res.headers['access-control-allow-methods']).toBe(
+        'GET,PUT,POST,DELETE'
+      )
+      expect(res.headers['access-control-allow-headers']).toBe('content-type')
+    })
+
+    it('should not allow origin if host does not match', async () => {
+      defineRoute({
+        method: 'get',
+        path: '/hello',
+        handler: async ({ requestId }) => {
+          return { requestId: requestId }
+        },
+      })
+
+      const app = await createApp({
+        cors: {
+          origin: ['https://example.com'],
+        },
+      })
+
+      const res = await request(app)
+        .options('/hello')
+        .set('origin', 'https://example.net')
+
+      expect(res.status).toBe(204)
+
+      expect(res.headers['access-control-allow-origin']).toBeUndefined()
+    })
+  })
 })
