@@ -127,7 +127,7 @@ export type RouteDefinition<
   TFile extends FileRules | undefined = undefined,
 > = {
   path: string
-  method?: 'get' | 'post' | 'put' | 'delete'
+  method?: 'get' | 'post' | 'put' | 'patch' | 'delete'
   handler: AsyncHandler<ExtractRequestType<S>, Response, TResult, TFile>
   schema?: SchemaFactory<S>
   middlewares?: RouteMiddleware<ExtractRequestType<S>>[]

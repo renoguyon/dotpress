@@ -100,6 +100,24 @@ describe('Basic routing', () => {
     expect(res.body).toEqual({ status: 'updated' })
   })
 
+  it('should handle PATCH request correctly', async () => {
+    defineRoute({
+      path: '/vendors/:id',
+      method: 'patch',
+      handler: async ({ req }) => {
+        return { status: 'patched', ...req.body }
+      },
+    })
+
+    const app = await createApp()
+    const res = await request(app).patch('/vendors/100').send({
+      country: 'Canada',
+    })
+
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual({ status: 'patched', country: 'Canada' })
+  })
+
   it('should handle DELETE request correctly', async () => {
     defineRoute({
       path: '/vendors/:id',

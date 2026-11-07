@@ -78,6 +78,14 @@ export const wrapHandler = <
 
       const result = await fn(ctx)
 
+      // The handler wrote (or returned) the response itself — e.g.
+      // `return res.status(200).json(...)`, `res.send(buffer); return`.
+      // Don't touch an already-sent response, otherwise re-serializing `res`
+      // throws "Converting circular structure to JSON".
+      if (res.headersSent) {
+        return
+      }
+
       if (result !== undefined) {
         if (result instanceof HttpError) {
           return returnErrorResponse(res, result)
